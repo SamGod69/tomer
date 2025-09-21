@@ -1,9 +1,13 @@
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import Card from "./Card";
 
 const Taskbar = ({ className }) => {
-  const [tasks, setTasks] = useState();
+  const [tasksList, setTasksList] = useState([
+    { content: "Do homework" },
+    { content: "Finish Tomer" },
+  ]);
   return (
     <aside className={`${className}`}>
       <div>
@@ -15,7 +19,11 @@ const Taskbar = ({ className }) => {
         <Button variant="secondary">Add Task</Button>
       </div>
       <div className="TASKS_CONTAINER mx-4 mb-4 border-1 border-white rounded-lg flex-1">
-        <div className="text-center p-4 text-lg">No tasks yet</div>
+        {tasksList ? (
+          tasksList.map((task) => <Card task={task} />)
+        ) : (
+          <div className="text-center p-4 text-lg">No tasks yet</div>
+        )}
       </div>
     </aside>
   );
