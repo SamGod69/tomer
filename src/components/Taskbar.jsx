@@ -18,11 +18,11 @@ const Taskbar = ({ className }) => {
         <Input type="text" placeholder="Enter task" />
         <Button variant="secondary">Add Task</Button>
       </div>
-      <div className="TASKS_CONTAINER mx-4 mb-4 border-1 border-white rounded-lg flex-1">
+      <div className="TASKS_CONTAINER mx-4 mb-4 border-1 border-white rounded-lg flex-1 p-4">
         {tasksList ? (
           tasksList.map((task) => <Card task={task} />)
         ) : (
-          <div className="text-center p-4 text-lg">No tasks yet</div>
+          <div className="text-center text-lg">No tasks yet</div>
         )}
       </div>
     </aside>
