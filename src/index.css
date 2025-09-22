@@ -6,6 +6,7 @@
 @theme {
 	--color-backgroundColor: #0A0A0A;
 	--color-textColor: #D4D4D4;
+	--color-lineColor: #979595 ; 
 }
 
 @theme inline {
