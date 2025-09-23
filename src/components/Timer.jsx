@@ -3,6 +3,7 @@ import { CountdownCircleTimer } from "react-countdown-circle-timer";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Play, Pause, RotateCcw, Check } from "lucide-react";
+import useSound from "use-sound";
 
 const Timer = ({ className }) => {
 	const [playing, setPlaying] = useState(false);
@@ -11,7 +12,7 @@ const Timer = ({ className }) => {
 	const [round, setRound] = useState(0);
 	const [progressBars, setProgressBars] = useState([100, 100, 100]);
 
-	const focusDuration = 1200;
+	const focusDuration = 20 * 60;
 	const breakDuration = 30;
 	const napDuration = 15 * 60;
 
@@ -23,6 +24,9 @@ const Timer = ({ className }) => {
 			: phase === "break"
 			? breakDuration
 			: napDuration;
+
+	// hook for alarm sound
+	const [playDingSound] = useSound("/sounds/ding.mp3", { volume: 1 });
 
 	// Update progress with fractional seconds
 	const updateProgress = (remainingTime) => {
@@ -72,8 +76,10 @@ const Timer = ({ className }) => {
 						size={300}
 						strokeLinecap="butt"
 						trailColor="transparent"
-						onUpdate={updateProgress} // receives fractional remainingTime
+						onUpdate={updateProgress}
 						onComplete={() => {
+							playDingSound(); // 🔔 play alarm whenever a phase ends
+
 							if (phase === "focus") {
 								if (round < 2) {
 									setPhase("break");
