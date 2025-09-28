@@ -6,36 +6,37 @@ import { Play, Pause, RotateCcw, Check } from "lucide-react";
 import useSound from "use-sound";
 
 const Timer = ({ className }) => {
-	const [playing, setPlaying] = useState(false);
-	const [timerKey, setTimerKey] = useState(0);
-	const [phase, setPhase] = useState("focus"); // "focus" | "break" | "nap"
-	const [round, setRound] = useState(0);
-	const [progressBars, setProgressBars] = useState([100, 100, 100]);
-	const [remainingTime, setRemainingTime] = useState(0);
-
-	// Durations in seconds
-	const focusDuration = 20 * 60;
+	const focusDuration = 10;
 	const breakDuration = 30;
 	const napDuration = 15 * 60;
 
-	const roundToBarIndex = [2, 1, 0];
-
-	const getDuration = () =>
+	const getDuration = (phase) =>
 		phase === "focus"
 			? focusDuration
 			: phase === "break"
 			? breakDuration
 			: napDuration;
 
-	// Sound hook
+	const [phase, setPhase] = useState("focus");
+	const [round, setRound] = useState(0);
+	const roundToBarIndex = [2, 1, 0];
+	const [progressBars, setProgressBars] = useState([100, 100, 100]);
+
+	// Initialize remainingTime with the full duration for the phase
+	const [remainingTime, setRemainingTime] = useState(getDuration(phase));
+	const [playing, setPlaying] = useState(false);
+	const [timerKey, setTimerKey] = useState(0);
+
 	const [playDingSound] = useSound("/sounds/ding.mp3", { volume: 1 });
 
-	// Ref to store absolute end time in ms
 	const endTimeRef = useRef(null);
-	// Interval ref for clearing
 	const intervalRef = useRef(null);
 
-	// Use effect to handle timer ticking with system time
+	// When phase changes, reset remainingTime to full duration
+	useEffect(() => {
+		setRemainingTime(getDuration(phase));
+	}, [phase]);
+
 	useEffect(() => {
 		if (!playing) {
 			if (intervalRef.current) {
@@ -45,22 +46,19 @@ const Timer = ({ className }) => {
 			return;
 		}
 
-		// Set absolute end time based on current time + duration when timer starts
 		if (!endTimeRef.current) {
-			endTimeRef.current = Date.now() + getDuration() * 1000;
+			endTimeRef.current = Date.now() + remainingTime * 1000;
 		}
 
-		// Update remaining time at 200ms intervals for smoother updates
 		intervalRef.current = setInterval(() => {
 			const now = Date.now();
-			let remaining = Math.round((endTimeRef.current - now) / 1000);
-			remaining = remaining >= 0 ? remaining : 0;
-			setRemainingTime(remaining);
+			let rem = Math.round((endTimeRef.current - now) / 1000);
+			rem = rem >= 0 ? rem : 0;
+			setRemainingTime(rem);
 
-			// Update progress bars on "focus" phase
 			if (phase === "focus") {
 				const idx = roundToBarIndex[round];
-				const percent = (remaining / focusDuration) * 100;
+				const percent = (rem / focusDuration) * 100;
 				setProgressBars((prev) => {
 					const newBars = [...prev];
 					newBars[idx] = percent;
@@ -68,21 +66,13 @@ const Timer = ({ className }) => {
 				});
 			}
 
-			// When timer completes
-			if (remaining <= 0) {
-				// Play sound
+			if (rem <= 0) {
 				playDingSound();
-
-				// Stop timer and advance phases
 				setPlaying(false);
 				endTimeRef.current = null;
-
 				if (phase === "focus") {
-					if (round < 2) {
-						setPhase("break");
-					} else {
-						setPhase("nap");
-					}
+					if (round < 2) setPhase("break");
+					else setPhase("nap");
 				} else if (phase === "break") {
 					setPhase("focus");
 					setRound((prev) => Math.min(prev + 1, 2));
@@ -90,12 +80,10 @@ const Timer = ({ className }) => {
 					resetAll();
 					return;
 				}
-
 				setTimerKey((prev) => prev + 1);
 			}
 		}, 200);
 
-		// Clear interval on cleanup or when dependencies change
 		return () => {
 			if (intervalRef.current) {
 				clearInterval(intervalRef.current);
@@ -104,7 +92,6 @@ const Timer = ({ className }) => {
 		};
 	}, [playing, phase, round]);
 
-	// Listen for tab visibility change to update timer immediately on focus
 	useEffect(() => {
 		const onVisibilityChange = () => {
 			if (
@@ -113,13 +100,12 @@ const Timer = ({ className }) => {
 				endTimeRef.current
 			) {
 				const now = Date.now();
-				let remaining = Math.round((endTimeRef.current - now) / 1000);
-				remaining = remaining >= 0 ? remaining : 0;
-				setRemainingTime(remaining);
+				let rem = Math.round((endTimeRef.current - now) / 1000);
+				rem = rem >= 0 ? rem : 0;
+				setRemainingTime(rem);
 			}
 		};
 		document.addEventListener("visibilitychange", onVisibilityChange);
-
 		return () => {
 			document.removeEventListener(
 				"visibilitychange",
@@ -134,14 +120,12 @@ const Timer = ({ className }) => {
 		setRound(0);
 		setProgressBars([100, 100, 100]);
 		setTimerKey((prev) => prev + 1);
-		setRemainingTime(0);
+		setRemainingTime(getDuration("focus"));
 		endTimeRef.current = null;
 	};
 
-	// Show formatted remaining time or full duration when stopped
-	const displayTime = playing ? remainingTime : getDuration();
-	const minutes = Math.floor(displayTime / 60);
-	const seconds = displayTime % 60;
+	const minutes = Math.floor(remainingTime / 60);
+	const seconds = remainingTime % 60;
 
 	return (
 		<div className={`${className}`}>
@@ -162,30 +146,25 @@ const Timer = ({ className }) => {
 							: "Take a nap 😴"}
 					</span>
 
-					{/* Use CountdownCircleTimer for visualization, disable internal timer */}
-					<div
-						style={{
-							position: "relative",
-							display: "inline-block",
-						}}
-					>
+					<div className="relative inline-block">
 						<CountdownCircleTimer
 							key={timerKey + phase}
-							isPlaying={false}
-							duration={getDuration()}
-							initialRemainingTime={displayTime}
+							duration={getDuration(phase)}
+							isPlaying={playing}
 							colors="#3d3d3d"
 							size={300}
 							strokeLinecap="butt"
 							trailColor="transparent"
-						/>
-						<div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none text-5xl font-bold">
-							{minutes.toString().padStart(2, "0")}:
-							{seconds.toString().padStart(2, "0")}
-						</div>
+						>
+							{() => (
+								<div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none text-5xl font-bold">
+									{minutes.toString().padStart(2, "0")}:
+									{seconds.toString().padStart(2, "0")}
+								</div>
+							)}
+						</CountdownCircleTimer>
 					</div>
 
-					{/* Progress bars hidden during nap */}
 					{phase !== "nap" && (
 						<div className="flex gap-2 absolute bottom-0 left-0 p-4">
 							{progressBars.map((value, i) => (
@@ -198,15 +177,11 @@ const Timer = ({ className }) => {
 						</div>
 					)}
 
-					{/* Controls */}
 					<div className="flex gap-2 w-[300px]">
 						{playing ? (
 							<Button
 								className="flex-1 cursor-pointer"
-								onClick={() => {
-									setPlaying(false);
-									endTimeRef.current = null; // Reset end time on pause
-								}}
+								onClick={() => setPlaying(false)}
 							>
 								<Pause />
 							</Button>
@@ -214,12 +189,16 @@ const Timer = ({ className }) => {
 							<Button
 								className="flex-1 cursor-pointer"
 								onClick={() => {
-									setPlaying(true);
 									if (!endTimeRef.current) {
 										endTimeRef.current =
-											Date.now() + getDuration() * 1000;
-										setRemainingTime(getDuration());
+											Date.now() +
+											getDuration(phase) * 1000;
+										setRemainingTime(getDuration(phase));
+									} else {
+										endTimeRef.current =
+											Date.now() + remainingTime * 1000;
 									}
+									setPlaying(true);
 								}}
 							>
 								<Play />
