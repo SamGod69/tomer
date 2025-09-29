@@ -6,7 +6,7 @@ import { Play, Pause, RotateCcw, Check } from "lucide-react";
 import useSound from "use-sound";
 
 const Timer = ({ className }) => {
-	const focusDuration = 10;
+	const focusDuration = 20 * 60;
 	const breakDuration = 30;
 	const napDuration = 15 * 60;
 
